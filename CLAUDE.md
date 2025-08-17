@@ -63,5 +63,5 @@ This is a Raycast extension that searches and displays AI models from OpenRouter
 
 ### Known Raycast Linting Warnings
 
-- Title Case warning for "OpenRouter" can be ignored (it's a proper noun)
+- Title Case warning for "OpenRouter" should be ignored (it's a proper noun, not a title case issue)
 - Action titles "Copy Model Id" and "View on Openrouter" may trigger Title Case warnings
