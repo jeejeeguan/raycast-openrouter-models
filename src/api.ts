@@ -1,4 +1,3 @@
-import fetch from "node-fetch";
 import { Cache } from "@raycast/api";
 
 export interface OpenRouterModel {
