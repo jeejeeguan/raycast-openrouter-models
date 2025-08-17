@@ -1,4 +1,5 @@
 import fetch from "node-fetch";
+import { Cache } from "@raycast/api";
 
 export interface OpenRouterModel {
   id: string;
@@ -19,23 +20,93 @@ export interface OpenRouterResponse {
   data: OpenRouterModel[];
 }
 
+const cache = new Cache();
+const CACHE_KEY = "openrouter-models";
+const CACHE_TTL = 1000 * 60 * 60; // 1小时缓存有效期
+
+export interface CachedData {
+  models: OpenRouterModel[];
+  timestamp: number;
+}
+
+export function getCachedModels(): OpenRouterModel[] | null {
+  const cached = cache.get(CACHE_KEY);
+  if (!cached) return null;
+
+  try {
+    const data = JSON.parse(cached) as CachedData;
+    const now = Date.now();
+
+    // 检查缓存是否过期
+    if (now - data.timestamp > CACHE_TTL) {
+      return null;
+    }
+
+    return data.models;
+  } catch {
+    return null;
+  }
+}
+
+export function setCachedModels(models: OpenRouterModel[]): void {
+  const data: CachedData = {
+    models,
+    timestamp: Date.now(),
+  };
+  cache.set(CACHE_KEY, JSON.stringify(data));
+}
+
 export async function fetchOpenRouterModels(): Promise<OpenRouterModel[]> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000); // 10秒超时
+
   try {
     const response = await fetch("https://openrouter.ai/api/v1/models", {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
       },
+      signal: controller.signal,
     });
 
+    clearTimeout(timeoutId);
+
     if (!response.ok) {
+      if (response.status === 503 || response.status === 502) {
+        throw new Error("OpenRouter service is temporarily unavailable");
+      } else if (response.status === 429) {
+        throw new Error("Too many requests, please try again later");
+      }
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
     const data = (await response.json()) as OpenRouterResponse;
-    return data.data || [];
+    const models = data.data || [];
+
+    // 缓存数据
+    setCachedModels(models);
+
+    return models;
   } catch (error) {
-    console.error("Failed to fetch OpenRouter models:", error);
+    clearTimeout(timeoutId);
+
+    if (error instanceof Error) {
+      if (error.name === "AbortError") {
+        throw new Error(
+          "Request timeout - please check your network connection",
+        );
+      } else if (
+        "code" in error &&
+        (error.code === "ENOTFOUND" || error.code === "ECONNREFUSED")
+      ) {
+        throw new Error(
+          "Network error - please check your internet connection",
+        );
+      } else if (error.message?.includes("fetch")) {
+        throw new Error("Network error - unable to connect to OpenRouter");
+      }
+    }
+
     throw error;
   }
 }
