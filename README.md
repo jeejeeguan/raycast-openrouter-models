@@ -30,6 +30,18 @@ npm run dev
 npm run build
 ```
 
+## Privacy & Security
+
+This extension uses the [OpenRouter public API](https://openrouter.ai/api/v1/models) to fetch model information. 
+- **No authentication required** - The API endpoint is publicly accessible
+- **No user data collection** - This extension does not collect, store, or transmit any personal information
+- **Read-only operations** - Only retrieves publicly available model metadata
+
+## Credits
+
+- **API**: Model data provided by [OpenRouter](https://openrouter.ai)
+- **Icon**: OpenRouter logo used under fair use. All rights reserved by OpenRouter.
+
 ## Author
 
 Created by @jeejeeguan
